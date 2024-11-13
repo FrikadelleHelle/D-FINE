@@ -18,7 +18,6 @@ HGNetv2:
   freeze_at: -1
   freeze_norm: False
   use_lab: True
-  distributed: False
 
 DFINETransformer:
   num_layers: 3
