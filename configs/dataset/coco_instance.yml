@@ -1,0 +1,51 @@
+dataset:
+  type: CocoDataset
+  data_root: data/coco  # Adjust path as needed
+  ann_file: annotations/instances_train2017.json
+  img_prefix: train2017
+  return_masks: True
+  mask_format: 'polygon'  # COCO uses polygon format for masks
+  
+  transforms:
+    - type: LoadImageFromFile
+    - type: LoadAnnotations
+      with_bbox: True
+      with_mask: True  # Enable mask loading
+    - type: Resize
+      keep_ratio: True
+      scale: [640, 640]
+    - type: RandomFlip
+      prob: 0.5
+    - type: Normalize
+      mean: [123.675, 116.28, 103.53]
+      std: [58.395, 57.12, 57.375]
+    - type: Pad
+      size_divisor: 32
+    - type: DefaultFormatBundle
+    - type: Collect
+      keys: ['img', 'gt_bboxes', 'gt_labels', 'gt_masks']
+
+val_dataset:
+  type: CocoDataset
+  data_root: data/coco
+  ann_file: annotations/instances_val2017.json
+  img_prefix: val2017
+  return_masks: True
+  mask_format: 'polygon'
+  
+  transforms:
+    - type: LoadImageFromFile
+    - type: LoadAnnotations
+      with_bbox: True
+      with_mask: True
+    - type: Resize
+      keep_ratio: True
+      scale: [640, 640]
+    - type: Normalize
+      mean: [123.675, 116.28, 103.53]
+      std: [58.395, 57.12, 57.375]
+    - type: Pad
+      size_divisor: 32
+    - type: DefaultFormatBundle
+    - type: Collect
+      keys: ['img', 'gt_bboxes', 'gt_labels', 'gt_masks']
