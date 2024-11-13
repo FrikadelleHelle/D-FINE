@@ -11,7 +11,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 import argparse
-import torch
 
 from src.misc import dist_utils
 from src.core import YAMLConfig, yaml_utils
@@ -47,21 +46,6 @@ def main(args, ) -> None:
 
     print('cfg: ', cfg.__dict__)
 
-    # Add single-GPU training settings
-    if not args.distributed:
-        cfg.yaml_cfg['sync_bn'] = False
-        cfg.yaml_cfg['find_unused_parameters'] = False
-        
-        # Set batch sizes if not already set
-        if 'total_batch_size' not in cfg.yaml_cfg.get('train_dataloader', {}):
-            cfg.yaml_cfg.setdefault('train_dataloader', {})['total_batch_size'] = 32
-        if 'total_batch_size' not in cfg.yaml_cfg.get('val_dataloader', {}):
-            cfg.yaml_cfg.setdefault('val_dataloader', {})['total_batch_size'] = 64
-            
-        # Disable distributed features in HGNetv2
-        if 'HGNetv2' in cfg.yaml_cfg:
-            cfg.yaml_cfg['HGNetv2']['distributed'] = False
-
     solver = TASKS[cfg.yaml_cfg['task']](cfg)
 
     if args.test_only:
@@ -95,7 +79,6 @@ if __name__ == '__main__':
     parser.add_argument('--print-rank', type=int, default=0, help='print rank id')
 
     parser.add_argument('--local-rank', type=int, help='local rank id')
-    parser.add_argument('--distributed', action='store_true', help='enable distributed training')
     args = parser.parse_args()
 
     main(args)
