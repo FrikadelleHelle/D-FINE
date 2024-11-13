@@ -1,0 +1,44 @@
+__include__: [
+  '../dataset/coco_instance.yml',  # Change to instance segmentation dataset
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer.yml',
+  './include/dfine_hgnetv2.yml',
+]
+
+output_dir: ./output/dfine_hgnetv2_mask
+
+DFINE:
+  backbone: HGNetv2
+  use_mask: True  # Enable mask head
+
+HGNetv2:
+  name: 'B0'
+  return_idx: [1, 2, 3]
+  freeze_at: -1
+  freeze_norm: False
+  use_lab: True
+
+DFINETransformer:
+  num_layers: 3
+  eval_idx: -1
+  hidden_dim: 256
+  mask_head: True  # Enable mask prediction
+
+HybridEncoder:
+  in_channels: [256, 512, 1024]
+  hidden_dim: 256
+  depth_mult: 0.34
+  expansion: 0.5
+
+# Add mask loss configuration
+DFINECriterion:
+  weight_dict: {
+    loss_vfl: 1, 
+    loss_bbox: 5, 
+    loss_giou: 2, 
+    loss_fgl: 0.15, 
+    loss_ddf: 1.5,
+    loss_mask: 1.0  # Add mask loss weight
+  }
+  losses: ['vfl', 'boxes', 'local', 'masks']  # Add masks to losses
