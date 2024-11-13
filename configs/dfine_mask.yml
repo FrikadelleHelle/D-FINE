@@ -1,3 +1,5 @@
+task: det
+
 model:
   type: DFINEDetector
   backbone:
