@@ -1,3 +1,5 @@
+import torch.nn as nn
+
 # Add to your model definition
 class MaskHead(nn.Module):
     def __init__(self, hidden_dim, num_heads=8):
