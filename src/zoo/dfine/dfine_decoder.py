@@ -22,6 +22,7 @@ from .denoising import get_contrastive_denoising_training_group
 from .utils import deformable_attention_core_func_v2, get_activation, inverse_sigmoid
 from .utils import bias_init_with_prob
 from ...core import register
+from .mask_head import MaskHead
 
 __all__ = ['DFINETransformer']
 
@@ -306,6 +307,7 @@ class TransformerDecoder(nn.Module):
         self.layers = nn.ModuleList([copy.deepcopy(decoder_layer) for _ in range(self.eval_idx + 1)] \
                     + [copy.deepcopy(decoder_layer_wide) for _ in range(num_layers - self.eval_idx - 1)])
         self.lqe_layers = nn.ModuleList([copy.deepcopy(LQE(4, 64, 2, reg_max)) for _ in range(num_layers)])
+        self.mask_head = MaskHead(hidden_dim)
 
     def value_op(self, memory, value_proj, value_scale, memory_mask, memory_spatial_shapes):
         """
@@ -393,8 +395,12 @@ class TransformerDecoder(nn.Module):
             ref_points_detach = inter_ref_bbox.detach()
             output_detach = output.detach()
 
+        # Add mask prediction
+        mask_predictions = self.mask_head(output, memory)
+        
         return torch.stack(dec_out_bboxes), torch.stack(dec_out_logits), \
-               torch.stack(dec_out_pred_corners), torch.stack(dec_out_refs), pre_bboxes, pre_scores
+               torch.stack(dec_out_pred_corners), torch.stack(dec_out_refs), \
+               pre_bboxes, pre_scores, mask_predictions
 
 
 @register()
@@ -722,7 +728,7 @@ class DFINETransformer(nn.Module):
             self._get_decoder_input(memory, spatial_shapes, denoising_logits, denoising_bbox_unact)
 
         # decoder
-        out_bboxes, out_logits, out_corners, out_refs, pre_bboxes, pre_logits = self.decoder(
+        out_bboxes, out_logits, out_corners, out_refs, pre_bboxes, pre_logits, mask_predictions = self.decoder(
             init_ref_contents,
             init_ref_points_unact,
             memory,
@@ -748,10 +754,21 @@ class DFINETransformer(nn.Module):
 
 
         if self.training:
-            out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1], 'pred_corners': out_corners[-1],
-                   'ref_points': out_refs[-1], 'up': self.up, 'reg_scale': self.reg_scale}
+            out = {
+                'pred_logits': out_logits[-1], 
+                'pred_boxes': out_bboxes[-1], 
+                'pred_corners': out_corners[-1],
+                'pred_masks': mask_predictions, 
+                'ref_points': out_refs[-1], 
+                'up': self.up, 
+                'reg_scale': self.reg_scale
+            }
         else:
-            out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1]}
+            out = {
+                'pred_logits': out_logits[-1], 
+                'pred_boxes': out_bboxes[-1],
+                'pred_masks': mask_predictions 
+            }
 
         if self.training and self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss2(out_logits[:-1], out_bboxes[:-1], out_corners[:-1], out_refs[:-1],

@@ -86,6 +86,24 @@ class DFINEPostProcessor(nn.Module):
             result = dict(labels=lab, boxes=box, scores=sco)
             results.append(result)
 
+        # Process masks
+        if 'pred_masks' in outputs:
+            masks = outputs['pred_masks']
+            # Interpolate masks to original image size
+            masks = F.interpolate(
+                masks, 
+                size=tuple(orig_target_sizes[0].tolist()),
+                mode='bilinear',
+                align_corners=False
+            )
+            masks = masks > 0.5  # Convert to binary masks
+            
+            # Filter masks based on top predictions
+            masks = masks.gather(1, index.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, *masks.shape[-2:]))
+            
+            for i, result in enumerate(results):
+                result['masks'] = masks[i]
+                
         return results
 
 

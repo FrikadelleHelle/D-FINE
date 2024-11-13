@@ -60,6 +60,11 @@ class DFINECriterion(nn.Module):
         self.reg_max = reg_max
         self.num_pos, self.num_neg = None, None
 
+        if 'masks' not in losses:
+            losses.append('masks')
+        if 'loss_mask' not in weight_dict:
+            weight_dict['loss_mask'] = 1.0
+
     def loss_labels_focal(self, outputs, targets, indices, num_boxes):
         assert 'pred_logits' in outputs
         src_logits = outputs['pred_logits']
@@ -434,3 +439,17 @@ class DFINECriterion(nn.Module):
         step = .5 / (num_layers - 1)
         opt_list = [.5  + step * i for i in range(num_layers)] if num_layers > 1 else [1]
         return opt_list
+
+    def get_loss(self, loss_type, outputs, targets, indices, num_boxes, **kwargs):
+        if loss_type == "masks":
+            src_masks = outputs["pred_masks"]
+            target_masks = torch.cat([t["masks"] for t in targets])
+            src_idx = self._get_src_permutation_idx(indices)
+            tgt_idx = self._get_tgt_permutation_idx(indices)
+            src_masks = src_masks[src_idx]
+            target_masks = target_masks[tgt_idx]
+            
+            loss_mask = F.binary_cross_entropy_with_logits(
+                src_masks, target_masks.float(), reduction="mean"
+            )
+            return {"loss_mask": loss_mask}

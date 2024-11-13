@@ -13,6 +13,7 @@ from typing import Iterable
 
 import torch
 import torch.amp
+import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from torch.cuda.amp.grad_scaler import GradScaler
 
@@ -62,6 +63,15 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             with torch.autocast(device_type=str(device), enabled=False):
                 loss_dict = criterion(outputs, targets, **metas)
 
+            # Add mask loss if masks present in targets
+            if 'masks' in targets[0]:
+                mask_loss = F.binary_cross_entropy_with_logits(
+                    outputs['pred_masks'],
+                    targets['masks'],
+                    reduction='mean'
+                )
+                loss_dict['loss_mask'] = mask_loss
+
             loss = sum(loss_dict.values())
             scaler.scale(loss).backward()
 
@@ -76,6 +86,15 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         else:
             outputs = model(samples, targets=targets)
             loss_dict = criterion(outputs, targets, **metas)
+
+            # Add mask loss if masks present in targets
+            if 'masks' in targets[0]:
+                mask_loss = F.binary_cross_entropy_with_logits(
+                    outputs['pred_masks'],
+                    targets['masks'],
+                    reduction='mean'
+                )
+                loss_dict['loss_mask'] = mask_loss
 
             loss : torch.Tensor = sum(loss_dict.values())
             optimizer.zero_grad()

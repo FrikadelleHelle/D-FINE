@@ -26,6 +26,7 @@ class DetDETRPostProcessor(nn.Module):
         use_focal_loss=True,
         num_top_queries=300,
         box_process_format=BoxProcessFormat.RESIZE,
+        return_masks=False,
     ) -> None:
         super().__init__()
         self.use_focal_loss = use_focal_loss
@@ -33,6 +34,7 @@ class DetDETRPostProcessor(nn.Module):
         self.num_classes = int(num_classes)
         self.box_process_format = box_process_format
         self.deploy_mode = False
+        self.return_masks = return_masks
 
     def extra_repr(self) -> str:
         return f'use_focal_loss={self.use_focal_loss}, num_classes={self.num_classes}, num_top_queries={self.num_top_queries}'
@@ -74,6 +76,12 @@ class DetDETRPostProcessor(nn.Module):
         for lab, box, sco in zip(labels, boxes, scores):
             result = dict(labels=lab, boxes=box, scores=sco)
             results.append(result)
+
+        if self.return_masks and 'pred_masks' in outputs:
+            masks = outputs['pred_masks']
+            # Process masks based on selected indices
+            masks = masks[torch.arange(masks.shape[0]).unsqueeze(1), index]
+            results['masks'] = masks > 0.5
 
         return results
 

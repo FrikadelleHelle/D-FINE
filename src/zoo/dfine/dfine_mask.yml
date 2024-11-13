@@ -1,0 +1,36 @@
+model:
+  type: DFINEDetector
+  backbone:
+    type: CSPDarkNet
+    return_idx: [2, 3, 4]
+    width_multi: 0.75
+    depth_multi: 0.33
+    act: silu
+    
+  neck:
+    type: CSPPAN
+    in_channels: [192, 384, 768]
+    depth_multi: 0.33
+    act: silu
+    
+  head:
+    hidden_dim: 256
+    num_queries: 300
+    num_classes: 80
+    num_heads: 8
+    num_layers: 6
+    num_levels: 4
+    num_points: 4
+    num_denoising: 100
+    label_noise_ratio: 0.5
+    box_noise_scale: 1.0
+    learnt_init_query: True
+    mask_head: True  # Enable mask head
+
+loss:
+  losses: ['labels', 'boxes', 'masks']  # Add masks loss
+  weight_dict:
+    loss_ce: 2.0
+    loss_bbox: 5.0
+    loss_giou: 2.0
+    loss_mask: 1.0  # Add mask loss weight
