@@ -1,4 +1,4 @@
-task: det
+task: detection
 
 model:
   type: DFINEDetector
