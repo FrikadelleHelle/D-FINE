@@ -1,12 +1,12 @@
 __include__: [
-  '../../../dataset/custom_detection.yml',
-  '../../../runtime.yml',
-  '../../include/dataloader.yml',
-  '../../include/optimizer.yml',
-  '../../include/dfine_hgnetv2.yml',
+  '../../dataset/crowdhuman_detection.yml',
+  '../../runtime.yml',
+  '../include/dataloader.yml',
+  '../include/optimizer.yml',
+  '../include/dfine_hgnetv2.yml',
 ]
 
-output_dir: ./output/dfine_hgnetv2_x_obj2custom
+output_dir: ./output/dfine_hgnetv2_x_crowdhuman
 
 
 DFINE:
@@ -18,10 +18,8 @@ HGNetv2:
   freeze_stem_only: True
   freeze_at: 0
   freeze_norm: True
-  pretrained: False
 
 HybridEncoder:
-  # intra
   hidden_dim: 384
   dim_feedforward: 2048
 
@@ -44,19 +42,14 @@ optimizer:
   weight_decay: 0.000125
 
 
-epoches: 36 # Early stop
+# Increase to search for the optimal ema
+epoches: 140
 train_dataloader:
   dataset:
     transforms:
       policy:
-        epoch: 30
+        epoch: 120
   collate_fn:
-    stop_epoch: 30
-    ema_restart_decay: 0.9999
+    stop_epoch: 120
+    ema_restart_decay: 0.9998
     base_size_repeat: 3
-
-ema:
-  warmups: 0
-
-lr_warmup_scheduler:
-  warmup_duration: 0
